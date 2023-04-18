@@ -4,6 +4,14 @@ const Schema = mongoose.Schema;
 const app = express();
 const jsonParser = express.json();
 
+const {
+    MONGO_DB_HOSTNAME,
+    MONGO_DB_PORT,
+    MONGO_DB
+} = process.env
+
+const url = `mongodb://${MONGO_DB_HOSTNAME}:${MONGO_DB_PORT}/${MONGO_DB}`;
+
 const akbScheme = new Schema({
     maker: String,
     type: String,
@@ -15,32 +23,29 @@ const akbScheme = new Schema({
 const Akb = mongoose.model("Akb", akbScheme);
 
 app.use(express.static(__dirname + "/public"));
-mongoose.connect("mongodb+srv://root:root@cluster0.mhlyyck.mongodb.net/akbs_db")
-.then(() => 
-{
+
+mongoose.connect(url)
+.then(() => {
     app.listen(3000, function(){
-        console.log("Server is successfully connected to Mongo DB...");
-        console.log(__dirname);
+        console.log("Server is waiting for connection...");
     });
 }).catch((err) => console.log(err));
 
- 
 app.get("/api/akbs", function(req, res){
     Akb.find({}).then(function(akbs){
-        res.json(akbs)
+        res.send(akbs)
     }).catch((err) => console.log(err));
 });
 
 app.get("/api/akbs/:id", function(req, res){
     const id = req.params.id;
-    const collection = req.app.locals.collection;
     Akb.findOne({_id: id}).then(function(akb){
         res.send(akb);
     }).catch((err) => console.log(err));
 });
-   
+
 app.post("/api/akbs", jsonParser, function (req, res) {
-       
+
     if(!req.body) return res.sendStatus(400);
        
     const akbMaker = req.body.maker;
@@ -57,11 +62,9 @@ app.post("/api/akbs", jsonParser, function (req, res) {
 });
     
 app.delete("/api/akbs/:id", function(req, res){
-        
     const id = req.params.id;
-    
-    Akb.findByIdAndDelete(id).then(function(akb){    
-        res.json(akb);
+    Akb.findByIdAndDelete(id).then(function(akb){
+        res.send(akb);
     }).catch((err) => console.log(err));
 });
    
@@ -76,13 +79,10 @@ app.put("/api/akbs", jsonParser, function(req, res){
     const akbPrice = req.body.price;
 
     const newAkb = {maker: akbMaker, type: akbType, amp_hours: akbAmpHours, volt: akbVolt, price: akbPrice};
-       
-    Akb.findOneAndUpdate({_id: id}, newAkb, {new: true}).then(function(akb){   
+
+    Akb.findOneAndUpdate({_id: id}, newAkb, {new: true}).then(function(akb){
         res.send(akb);
     }).catch((err) => console.log(err));
+
 });
 
-process.on("SIGINT", () => {
-    dbClient.close();
-    process.exit();
-});
